@@ -1,5 +1,7 @@
 package com.microsol.bancamovil.domain.model
 
+import com.microsol.bancamovil.domain.util.SESSION_DURATION_MS
+
 data class AuthSession(
     val accessToken: String,
     val refreshToken: String? = null,
@@ -8,9 +10,6 @@ data class AuthSession(
     val user: User,
     val loginTimestamp: Long = System.currentTimeMillis()
 ) {
-    fun isExpired(): Boolean {
-        val currentTime = System.currentTimeMillis()
-        val sessionDuration = 2 * 60 * 1000L
-        return (currentTime - loginTimestamp) > sessionDuration
-    }
+    fun isExpired(): Boolean =
+        (System.currentTimeMillis() - loginTimestamp) > SESSION_DURATION_MS
 }

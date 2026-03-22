@@ -14,65 +14,67 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase
-) : ViewModel() {
+) : ViewModel(), LoginScreenViewModel {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    private val _formState = MutableStateFlow(LoginFormState())
+    override val formState: StateFlow<LoginFormState> = _formState.asStateFlow()
 
-    fun updateUsername(username: String) {
-        _uiState.value = _uiState.value.copy(username = username)
+    private val _authState = MutableStateFlow<LoginAuthState>(LoginAuthState.Idle)
+    override val authState: StateFlow<LoginAuthState> = _authState.asStateFlow()
+
+    override fun updateUsername(username: String) {
+        _formState.value = _formState.value.copy(username = username)
     }
 
-    fun updatePassword(password: String) {
-        _uiState.value = _uiState.value.copy(password = password)
+    override fun updatePassword(password: String) {
+        _formState.value = _formState.value.copy(password = password)
     }
 
-    fun login() {
-        val currentState = _uiState.value
-        
-        if (currentState.isLoading) return
-        
-        _uiState.value = currentState.copy(
-            isLoading = true,
-            error = null
-        )
+    override fun login() {
+        if (_authState.value is LoginAuthState.Loading) return
+
+        _authState.value = LoginAuthState.Loading
 
         viewModelScope.launch {
-            when (val result = loginUseCase(currentState.username, currentState.password)) {
-                is Result.Success -> {
-                    _uiState.value = currentState.copy(
-                        isLoading = false,
-                        isSuccess = true,
-                        error = null
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = currentState.copy(
-                        isLoading = false,
-                        isSuccess = false,
-                        error = result.exception.message ?: "Error desconocido"
-                    )
-                }
-                is Result.Loading -> {
-                    // Ya estamos en loading
-                }
+            val form = _formState.value
+            when (val result = loginUseCase(form.username, form.password)) {
+                is Result.Success -> _authState.value = LoginAuthState.Success
+                is Result.Error -> _authState.value = LoginAuthState.Error(
+                    result.exception.message ?: "Error desconocido"
+                )
             }
         }
     }
 
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+    override fun clearError() {
+        if (_authState.value is LoginAuthState.Error) {
+            _authState.value = LoginAuthState.Idle
+        }
     }
 
-    fun resetSuccessState() {
-        _uiState.value = _uiState.value.copy(isSuccess = false)
+    override fun resetSuccessState() {
+        _authState.value = LoginAuthState.Idle
     }
 }
 
-data class LoginUiState(
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false,
-    val error: String? = null,
+data class LoginFormState(
     val username: String = "",
     val password: String = ""
 )
+
+sealed class LoginAuthState {
+    object Idle : LoginAuthState()
+    object Loading : LoginAuthState()
+    object Success : LoginAuthState()
+    data class Error(val message: String) : LoginAuthState()
+}
+
+interface LoginScreenViewModel {
+    val formState: StateFlow<LoginFormState>
+    val authState: StateFlow<LoginAuthState>
+    fun updateUsername(username: String)
+    fun updatePassword(password: String)
+    fun login()
+    fun clearError()
+    fun resetSuccessState()
+}

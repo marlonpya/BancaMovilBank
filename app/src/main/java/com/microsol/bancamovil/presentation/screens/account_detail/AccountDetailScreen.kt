@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -32,41 +31,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.microsol.bancamovil.domain.model.AccountType
 import com.microsol.bancamovil.domain.model.BankAccount
-import com.microsol.bancamovil.domain.model.Currency
 import com.microsol.bancamovil.presentation.components.MaterialIcon
 import com.microsol.bancamovil.presentation.components.TransactionItem
+import com.microsol.bancamovil.presentation.viewmodel.AccountDetailUiState
 import com.microsol.bancamovil.presentation.viewmodel.AccountDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountDetailScreen(
     accountId: String,
-    account: BankAccount?,
     onNavigateBack: () -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(account, accountId) {
-        account?.let { viewModel.setAccount(it) }
+    LaunchedEffect(accountId) {
         viewModel.loadAccountDetail(accountId)
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
+    LaunchedEffect(uiState) {
+        if (uiState is AccountDetailUiState.Error) {
             snackbarHostState.showSnackbar(
-                message = error,
+                message = (uiState as AccountDetailUiState.Error).message,
                 duration = SnackbarDuration.Short
             )
-            viewModel.clearError()
         }
     }
 
@@ -81,104 +75,121 @@ fun AccountDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        MaterialIcon(
-                            iconName = "arrow_back",
-                            size = 24.dp
-                        )
+                        MaterialIcon(iconName = "arrow_back", size = 24.dp)
                     }
                 }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        if (uiState.account == null || uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        when (val state = uiState) {
+            is AccountDetailUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    AccountInfoCard(account = uiState.account!!)
-                }
 
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Movimientos",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                if (uiState.movements.isEmpty() && !uiState.isLoading) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                MaterialIcon(
-                                    iconName = "receipt_long",
-                                    size = 48.dp,
-                                    tint = MaterialTheme.colorScheme.outline
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Aún no tienes movimientos",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    items(uiState.movements) { transaction ->
+            is AccountDetailUiState.Success -> {
+                AccountDetailContent(
+                    account = state.account,
+                    paddingValues = paddingValues
+                ) {
+                    items(state.movements) { transaction ->
                         TransactionItem(transaction = transaction)
                     }
+                }
+            }
+
+            is AccountDetailUiState.Empty -> {
+                AccountDetailContent(
+                    account = state.account,
+                    paddingValues = paddingValues
+                ) {
+                    item {
+                        EmptyMovementsCard()
+                    }
+                }
+            }
+
+            is AccountDetailUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
     }
 }
 
-@Preview
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccountDetailScreenPreview() {
-    val account = BankAccount(
-        id = "1",
-        accountNumber = "123-456-789",
-        accountType = AccountType.SAVINGS,
-        balance = 1000.0,
-        currency = Currency.SOLES,
-        isActive = true
-    )
-    AccountDetailScreen(
-        accountId = "1",
-        account = account,
-        onNavigateBack = {}
-    )
+private fun AccountDetailContent(
+    account: BankAccount,
+    paddingValues: PaddingValues,
+    movementsContent: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            AccountInfoCard(account = account)
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Movimientos",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        movementsContent()
+    }
+}
+
+@Composable
+private fun EmptyMovementsCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            MaterialIcon(
+                iconName = "receipt_long",
+                size = 48.dp,
+                tint = MaterialTheme.colorScheme.outline
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Aún no tienes movimientos",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

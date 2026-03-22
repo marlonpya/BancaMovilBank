@@ -180,14 +180,5 @@ class UserPreferences @Inject constructor(
         }
     }
 
-    // Check if session is expired (2 minutes)
-    fun isSessionExpired(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            val timestamp = preferences[SESSION_TIMESTAMP_KEY] ?: return@map true
-            val currentTime = System.currentTimeMillis()
-            val sessionDuration = 2 * 60 * 1000L // 2 minutos en milisegundos
-            (currentTime - timestamp) > sessionDuration
-        }
-    }
 }
 

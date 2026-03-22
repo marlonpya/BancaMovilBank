@@ -1,9 +1,5 @@
 package com.microsol.bancamovil.domain.model
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
-
-@Parcelize
 data class BankAccount(
     val id: String,
     val accountNumber: String,
@@ -11,16 +7,14 @@ data class BankAccount(
     val balance: Double,
     val currency: Currency,
     val isActive: Boolean = true
-) : Parcelable
+)
 
-@Parcelize
-enum class AccountType : Parcelable {
+enum class AccountType {
     SAVINGS,
     USD_SAVINGS,
 }
 
-@Parcelize
-enum class Currency(val symbol: String, val code: String) : Parcelable {
+enum class Currency(val symbol: String, val code: String) {
     SOLES("S/", "PEN"),
     DOLLARS("US$", "USD")
 }

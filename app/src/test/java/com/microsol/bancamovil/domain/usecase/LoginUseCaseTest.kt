@@ -2,24 +2,24 @@ package com.microsol.bancamovil.domain.usecase
 
 import com.microsol.bancamovil.domain.repository.AuthRepository
 import com.microsol.bancamovil.domain.util.Result
+import io.mockk.MockKAnnotations
+import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class LoginUseCaseTest {
 
-    @Mock
+    @MockK
     private lateinit var authRepository: AuthRepository
 
     private lateinit var loginUseCase: LoginUseCase
 
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
+        MockKAnnotations.init(this)
         loginUseCase = LoginUseCase(authRepository)
     }
 

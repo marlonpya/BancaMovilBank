@@ -9,14 +9,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.microsol.bancamovil.domain.model.BankAccount
 import com.microsol.bancamovil.presentation.navigation.Screen
 import com.microsol.bancamovil.presentation.screens.account_detail.AccountDetailScreen
 import com.microsol.bancamovil.presentation.screens.products.ProductsScreen
@@ -64,7 +62,6 @@ fun MainScreen(
             composable(Screen.Products.route) {
                 ProductsScreen(
                     onAccountClick = { account ->
-                        navController.currentBackStackEntry?.savedStateHandle?.set("selected_account", account)
                         navController.navigate(Screen.AccountDetail.createRoute(account.id))
                     }
                 )
@@ -72,17 +69,9 @@ fun MainScreen(
 
             composable(Screen.AccountDetail.route) { backStackEntry ->
                 val accountId = backStackEntry.arguments?.getString("accountId") ?: ""
-                val previousEntry = remember(backStackEntry) {
-                    navController.previousBackStackEntry
-                }
-                val selectedAccount = previousEntry?.savedStateHandle?.get<BankAccount>("selected_account")
-                
                 AccountDetailScreen(
                     accountId = accountId,
-                    account = selectedAccount,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

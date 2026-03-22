@@ -1,12 +1,15 @@
 package com.microsol.bancamovil.data.remote.dto
 
+import android.os.Build
 import com.google.gson.annotations.SerializedName
 import com.microsol.bancamovil.domain.model.Currency
 import com.microsol.bancamovil.domain.model.Transaction
 import com.microsol.bancamovil.domain.model.TransactionType
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 data class MovementsResponseDto(
     @SerializedName("data")
@@ -35,7 +38,9 @@ data class MovementDto(
 )
 
 fun MovementDto.toDomain(): Transaction {
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
     val parsedDate = try {
         dateFormat.parse(date) ?: Date()
     } catch (e: Exception) {

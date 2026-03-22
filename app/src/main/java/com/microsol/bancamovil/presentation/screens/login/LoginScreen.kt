@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -21,37 +22,47 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.microsol.bancamovil.R
 import com.microsol.bancamovil.presentation.components.BankingButton
 import com.microsol.bancamovil.presentation.components.BankingTextField
+import com.microsol.bancamovil.presentation.viewmodel.LoginAuthState
+import com.microsol.bancamovil.presentation.viewmodel.LoginScreenViewModel
 import com.microsol.bancamovil.presentation.viewmodel.LoginViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    viewModel: LoginViewModel = hiltViewModel()
+    viewModel: LoginScreenViewModel = hiltViewModel<LoginViewModel>()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val isLoading = authState is LoginAuthState.Loading
 
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
-            onLoginSuccess()
-            viewModel.resetSuccessState()
-        }
-    }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(
-                message = error,
-                duration = SnackbarDuration.Short
-            )
-            viewModel.clearError()
+    LaunchedEffect(authState) {
+        when (val state = authState) {
+            is LoginAuthState.Success -> {
+                onLoginSuccess()
+                viewModel.resetSuccessState()
+            }
+            is LoginAuthState.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = state.message,
+                    duration = SnackbarDuration.Short
+                )
+                viewModel.clearError()
+            }
+            else -> Unit
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+            snackbarHost = {
+                SnackbarHost(
+                    snackbarHostState,
+                    modifier = Modifier.testTag("login_error_message")
+                )
+            }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -84,7 +95,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(48.dp))
 
                 BankingTextField(
-                    value = uiState.username,
+                    value = formState.username,
                     onValueChange = viewModel::updateUsername,
                     label = "Usuario",
                     keyboardType = KeyboardType.Text
@@ -93,7 +104,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 BankingTextField(
-                    value = uiState.password,
+                    value = formState.password,
                     onValueChange = viewModel::updatePassword,
                     label = "Contraseña",
                     isPassword = true,
@@ -105,7 +116,8 @@ fun LoginScreen(
                 BankingButton(
                     text = "INGRESAR",
                     onClick = viewModel::login,
-                    isLoading = uiState.isLoading
+                    isLoading = isLoading,
+                    modifier = Modifier.testTag("login_button")
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -132,9 +144,7 @@ fun LoginScreen(
                                 • userTest1 / passTest1 (Login exitoso)
                                 • User@test / TestPass_ (Login exitoso)
                                 • user123& / 123456 (Login exitoso)
-                                • usr_error / cualquier_contraseña (Credenciales incorrectas)
-                                • usr_version_error / cualquier_contraseña (Error de versión)
-                                • Cualquier otro usuario (Error genérico)
+                                • Cualquier otro usuario (Login Error)
                                 """.trimIndent(),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Start
@@ -146,11 +156,12 @@ fun LoginScreen(
             }
         }
 
-        if (uiState.isLoading) {
+        if (isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) { /* consume all touch events */ },
+                    .testTag("login_loader")
+                    .pointerInput(Unit) { },
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()

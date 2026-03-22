@@ -17,6 +17,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.microsol.bancamovil.domain.model.BankAccount
 import com.microsol.bancamovil.presentation.components.AccountCard
 import com.microsol.bancamovil.presentation.components.MaterialIcon
+import com.microsol.bancamovil.presentation.viewmodel.ProductsContent
 import com.microsol.bancamovil.presentation.viewmodel.ProductsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +28,7 @@ fun ProductsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val swipeRefreshState = rememberSwipeRefreshState(uiState.isRefreshing)
+    val content = uiState.content
 
     // AlertDialog — error de carga inicial
     if (uiState.showLoadErrorDialog) {
@@ -78,8 +80,8 @@ fun ProductsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                uiState.isLoading -> {
+            when (content) {
+                is ProductsContent.Loading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -94,33 +96,26 @@ fun ProductsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        when {
-                            uiState.loadError -> {
-                                item(key = "load_error") {
-                                    LoadErrorItem()
+                        when (content) {
+                            is ProductsContent.LoadError -> {
+                                item(key = "load_error") { LoadErrorItem() }
+                            }
+                            is ProductsContent.RefreshError -> {
+                                item(key = "refresh_error") { RefreshErrorItem() }
+                            }
+                            is ProductsContent.Success -> {
+                                if (content.products.isEmpty()) {
+                                    item(key = "empty") { EmptyProductsItem() }
+                                } else {
+                                    items(content.products, key = { it.id }) { account ->
+                                        AccountCard(
+                                            account = account,
+                                            onClick = { onAccountClick(account) }
+                                        )
+                                    }
                                 }
                             }
-
-                            uiState.refreshError -> {
-                                item(key = "refresh_error") {
-                                    RefreshErrorItem()
-                                }
-                            }
-
-                            uiState.products.isEmpty() -> {
-                                item(key = "empty") {
-                                    EmptyProductsItem()
-                                }
-                            }
-
-                            else -> {
-                                items(uiState.products, key = { it.id }) { account ->
-                                    AccountCard(
-                                        account = account,
-                                        onClick = { onAccountClick(account) }
-                                    )
-                                }
-                            }
+                            else -> Unit
                         }
 
                         item { Spacer(modifier = Modifier.height(16.dp)) }

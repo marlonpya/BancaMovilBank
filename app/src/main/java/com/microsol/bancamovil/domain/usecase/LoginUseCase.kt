@@ -20,12 +20,10 @@ class LoginUseCase @Inject constructor(
         // Intentar login
         return when (val result = authRepository.login(username, password)) {
             is Result.Success -> {
-                // Guardar sesión si el login fue exitoso
                 authRepository.saveSession(result.data)
                 Result.Success(Unit)
             }
             is Result.Error -> result
-            is Result.Loading -> result
         }
     }
 }

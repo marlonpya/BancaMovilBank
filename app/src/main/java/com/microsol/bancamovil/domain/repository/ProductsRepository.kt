@@ -6,5 +6,6 @@ import com.microsol.bancamovil.domain.util.Result
 interface ProductsRepository {
     suspend fun getProducts(): Result<List<BankAccount>>
     suspend fun refreshProducts(): Result<List<BankAccount>>
+    suspend fun getProductById(id: String): BankAccount?
 }
 

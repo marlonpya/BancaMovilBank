@@ -10,28 +10,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.microsol.bancamovil.domain.model.AccountType
 import com.microsol.bancamovil.domain.model.BankAccount
+import com.microsol.bancamovil.domain.model.AccountType
 import com.microsol.bancamovil.domain.model.Currency
 import com.microsol.bancamovil.presentation.components.MaterialIcon
 import com.microsol.bancamovil.presentation.components.ShareAccountButton
+import com.microsol.bancamovil.presentation.components.getAccountTypeName
 import java.text.DecimalFormat
 
 
 @Composable
 fun AccountInfoCard(account: BankAccount) {
-    val decimalFormat = DecimalFormat("#,##0.00")
+    val decimalFormat = remember { DecimalFormat("#,##0.00") }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -115,13 +116,6 @@ fun AccountInfoCard(account: BankAccount) {
                 }
             }
         }
-    }
-}
-
-fun getAccountTypeName(accountType: AccountType): String {
-    return when (accountType) {
-        AccountType.SAVINGS -> "Cuenta soles"
-        AccountType.USD_SAVINGS -> "Cuenta dólares"
     }
 }
 

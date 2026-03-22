@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.microsol.bancamovil.domain.model.BankAccount
 import com.microsol.bancamovil.domain.model.Transaction
+import com.microsol.bancamovil.domain.repository.ProductsRepository
 import com.microsol.bancamovil.domain.usecase.GetAccountMovementsUseCase
 import com.microsol.bancamovil.domain.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,52 +16,38 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AccountDetailViewModel @Inject constructor(
-    private val getAccountMovementsUseCase: GetAccountMovementsUseCase
+    private val getAccountMovementsUseCase: GetAccountMovementsUseCase,
+    private val productsRepository: ProductsRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AccountDetailUiState())
+    private val _uiState = MutableStateFlow<AccountDetailUiState>(AccountDetailUiState.Loading)
     val uiState: StateFlow<AccountDetailUiState> = _uiState.asStateFlow()
 
     fun loadAccountDetail(accountId: String) {
-        _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            error = null
-        )
+        _uiState.value = AccountDetailUiState.Loading
 
         viewModelScope.launch {
+            val account = productsRepository.getProductById(accountId)
+            if (account == null) {
+                _uiState.value = AccountDetailUiState.Error("Cuenta no encontrada")
+                return@launch
+            }
+
             when (val result = getAccountMovementsUseCase(accountId)) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        movements = result.data,
-                        error = null
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.exception.message ?: "Error al cargar movimientos"
-                    )
-                }
-                is Result.Loading -> {
-                    // Ya estamos en loading
-                }
+                is Result.Success -> _uiState.value =
+                    if (result.data.isEmpty()) AccountDetailUiState.Empty(account)
+                    else AccountDetailUiState.Success(account, result.data)
+                is Result.Error -> _uiState.value = AccountDetailUiState.Error(
+                    result.exception.message ?: "Error al cargar movimientos"
+                )
             }
         }
     }
-
-    fun setAccount(account: BankAccount) {
-        _uiState.value = _uiState.value.copy(account = account)
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
-    }
 }
 
-data class AccountDetailUiState(
-    val isLoading: Boolean = false,
-    val account: BankAccount? = null,
-    val movements: List<Transaction> = emptyList(),
-    val error: String? = null
-)
+sealed class AccountDetailUiState {
+    object Loading : AccountDetailUiState()
+    data class Success(val account: BankAccount, val movements: List<Transaction>) : AccountDetailUiState()
+    data class Empty(val account: BankAccount) : AccountDetailUiState()
+    data class Error(val message: String) : AccountDetailUiState()
+}

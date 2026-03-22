@@ -74,9 +74,9 @@ fun BankingTextField(
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible)
-                            Icons.Default.VisibilityOff
+                            Icons.Default.Visibility
                         else
-                            Icons.Default.Visibility,
+                            Icons.Default.VisibilityOff,
                         contentDescription = if (passwordVisible)
                             "Ocultar contraseña"
                         else

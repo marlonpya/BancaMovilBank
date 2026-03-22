@@ -2,13 +2,14 @@ package com.microsol.bancamovil.di
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.microsol.bancamovil.BuildConfig
 import com.microsol.bancamovil.data.remote.api.AuthService
-import com.microsol.bancamovil.data.remote.api.ProductsService
 import com.microsol.bancamovil.data.remote.api.MovementsService
+import com.microsol.bancamovil.data.remote.api.ProductsService
 import com.microsol.bancamovil.data.remote.interceptor.AuthInterceptor
 import com.microsol.bancamovil.data.remote.mock.MockAuthService
-import com.microsol.bancamovil.data.remote.mock.MockProductsService
 import com.microsol.bancamovil.data.remote.mock.MockMovementsService
+import com.microsol.bancamovil.data.remote.mock.MockProductsService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,7 +35,8 @@ object NetworkModule {
     @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor =
         HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    else HttpLoggingInterceptor.Level.NONE
         }
 
     @Provides

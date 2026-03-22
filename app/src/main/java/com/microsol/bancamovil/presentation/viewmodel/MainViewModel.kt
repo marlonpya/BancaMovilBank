@@ -5,16 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.microsol.bancamovil.domain.repository.AuthRepository
 import com.microsol.bancamovil.domain.usecase.LogoutUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private const val SESSION_DURATION_MS = 2 * 60 * 1000L
-private const val CHECK_INTERVAL_MS = 1_000L
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -26,41 +22,29 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
-        startSessionPolling()
+        observeSession()
     }
 
-    private fun startSessionPolling() {
+    private fun observeSession() {
         viewModelScope.launch {
-            while (true) {
-                delay(CHECK_INTERVAL_MS)
-
-                val isLoggedIn = authRepository.isLoggedIn().first()
-                if (!isLoggedIn) break
-
-                val timestamp = authRepository.getLoginTimestamp() ?: break
-                val elapsed = System.currentTimeMillis() - timestamp
-
-                if (elapsed > SESSION_DURATION_MS) {
-                    _uiState.value = _uiState.value.copy(
-                        isSessionValid = false,
-                        showSessionExpiredDialog = true
-                    )
-                    break
+            authRepository.isSessionExpired()
+                .collect { isExpired ->
+                    if (isExpired) {
+                        _uiState.value = _uiState.value.copy(
+                            isSessionValid = false,
+                            showSessionExpiredDialog = true
+                        )
+                    }
                 }
-            }
-        }
-    }
-
-    fun logout() {
-        viewModelScope.launch {
-            logoutUseCase()
         }
     }
 
     fun dismissSessionExpiredDialog() {
         _uiState.value = _uiState.value.copy(showSessionExpiredDialog = false)
-        logout()
-        _uiState.value = _uiState.value.copy(shouldNavigateToLogin = true)
+        viewModelScope.launch {
+            logoutUseCase()
+            _uiState.value = _uiState.value.copy(shouldNavigateToLogin = true)
+        }
     }
 
     fun onNavigatedToLogin() {

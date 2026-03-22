@@ -27,32 +27,20 @@ class ProductsViewModel @Inject constructor(
     }
 
     fun loadProducts() {
-        if (_uiState.value.isLoading) return
-
         _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            loadError = false,
+            content = ProductsContent.Loading,
             showLoadErrorDialog = false
         )
 
         viewModelScope.launch {
             when (val result = getProductsUseCase()) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        products = result.data,
-                        loadError = false
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        products = emptyList(),
-                        loadError = true,
-                        showLoadErrorDialog = true
-                    )
-                }
-                is Result.Loading -> Unit
+                is Result.Success -> _uiState.value = _uiState.value.copy(
+                    content = ProductsContent.Success(result.data)
+                )
+                is Result.Error -> _uiState.value = _uiState.value.copy(
+                    content = ProductsContent.LoadError,
+                    showLoadErrorDialog = true
+                )
             }
         }
     }
@@ -62,28 +50,20 @@ class ProductsViewModel @Inject constructor(
 
         _uiState.value = _uiState.value.copy(
             isRefreshing = true,
-            refreshError = false,
             showRefreshErrorDialog = false
         )
 
         viewModelScope.launch {
             when (val result = refreshProductsUseCase()) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isRefreshing = false,
-                        products = result.data,
-                        refreshError = false
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isRefreshing = false,
-                        products = emptyList(),
-                        refreshError = true,
-                        showRefreshErrorDialog = true
-                    )
-                }
-                is Result.Loading -> Unit
+                is Result.Success -> _uiState.value = _uiState.value.copy(
+                    isRefreshing = false,
+                    content = ProductsContent.Success(result.data)
+                )
+                is Result.Error -> _uiState.value = _uiState.value.copy(
+                    isRefreshing = false,
+                    content = ProductsContent.RefreshError,
+                    showRefreshErrorDialog = true
+                )
             }
         }
     }
@@ -97,12 +77,16 @@ class ProductsViewModel @Inject constructor(
     }
 }
 
+sealed class ProductsContent {
+    object Loading : ProductsContent()
+    data class Success(val products: List<BankAccount>) : ProductsContent()
+    object LoadError : ProductsContent()
+    object RefreshError : ProductsContent()
+}
+
 data class ProductsUiState(
-    val isLoading: Boolean = false,
+    val content: ProductsContent = ProductsContent.Loading,
     val isRefreshing: Boolean = false,
-    val products: List<BankAccount> = emptyList(),
-    val loadError: Boolean = false,
-    val refreshError: Boolean = false,
     val showLoadErrorDialog: Boolean = false,
     val showRefreshErrorDialog: Boolean = false
 )

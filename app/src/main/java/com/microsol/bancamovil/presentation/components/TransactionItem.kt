@@ -3,14 +3,15 @@ package com.microsol.bancamovil.presentation.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import com.microsol.bancamovil.domain.model.Currency
 import com.microsol.bancamovil.domain.model.Transaction
 import com.microsol.bancamovil.domain.model.TransactionType
-import com.microsol.bancamovil.domain.model.Currency
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,8 +21,8 @@ fun TransactionItem(
     transaction: Transaction,
     modifier: Modifier = Modifier
 ) {
-    val decimalFormat = DecimalFormat("#,##0.00")
-    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale("es", "PE"))
+    val decimalFormat = remember { DecimalFormat("#,##0.00") }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("es", "PE")) }
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -59,7 +60,7 @@ fun TransactionItem(
                     text = "${if (transaction.amount >= 0) "+" else ""}${transaction.currency.symbol} ${decimalFormat.format(transaction.amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = getTransactionColor(transaction.type, transaction.amount)
+                    color = getTransactionColor(transaction.amount)
                 )
             }
         }
@@ -67,12 +68,10 @@ fun TransactionItem(
 }
 
 @Composable
-private fun getTransactionColor(type: TransactionType, amount: Double): androidx.compose.ui.graphics.Color {
-    return when {
-        amount > 0 -> MaterialTheme.colorScheme.primary
-        amount < 0 -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurface
-    }
+private fun getTransactionColor(amount: Double): androidx.compose.ui.graphics.Color = when {
+    amount > 0 -> MaterialTheme.colorScheme.primary
+    amount < 0 -> MaterialTheme.colorScheme.error
+    else -> MaterialTheme.colorScheme.onSurface
 }
 
 @Preview

@@ -6,7 +6,9 @@ import com.microsol.bancamovil.data.remote.dto.toDomain
 import com.microsol.bancamovil.domain.model.BankAccount
 import com.microsol.bancamovil.domain.repository.ProductsRepository
 import com.microsol.bancamovil.domain.util.Result
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,30 +18,27 @@ class ProductsRepositoryImpl @Inject constructor(
     private val userPreferences: UserPreferences
 ) : ProductsRepository {
 
-    override suspend fun getProducts(): Result<List<BankAccount>> {
-        return try {
+    private var cachedProducts: List<BankAccount> = emptyList()
+
+    override suspend fun getProducts(): Result<List<BankAccount>> = withContext(Dispatchers.IO) {
+        try {
             val accessToken = userPreferences.getAccessToken().first()
-            if (accessToken == null) {
-                return Result.Error(Exception("No hay sesión activa"))
-            }
+                ?: return@withContext Result.Error(Exception("No hay sesión activa"))
 
             val response = productsService.getProducts("Bearer $accessToken")
-            
+
             if (response.isSuccessful) {
                 val productsResponse = response.body()
-                
+
                 when {
                     productsResponse?.data != null -> {
                         val products = productsResponse.data.toDomain()
+                        cachedProducts = products
                         Result.Success(products)
                     }
-                    productsResponse?.error != null -> {
-                        val errorMessage = productsResponse.error.userMessage.spanish
-                        Result.Error(Exception(errorMessage))
-                    }
-                    else -> {
-                        Result.Error(Exception("No se pudieron obtener los productos"))
-                    }
+                    productsResponse?.error != null ->
+                        Result.Error(Exception(productsResponse.error.userMessage.spanish))
+                    else -> Result.Error(Exception("No se pudieron obtener los productos"))
                 }
             } else {
                 Result.Error(Exception("Error de conexión: ${response.code()}"))
@@ -49,30 +48,25 @@ class ProductsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun refreshProducts(): Result<List<BankAccount>> {
-        return try {
+    override suspend fun refreshProducts(): Result<List<BankAccount>> = withContext(Dispatchers.IO) {
+        try {
             val accessToken = userPreferences.getAccessToken().first()
-            if (accessToken == null) {
-                return Result.Error(Exception("No hay sesión activa"))
-            }
+                ?: return@withContext Result.Error(Exception("No hay sesión activa"))
 
             val response = productsService.refreshProducts("Bearer $accessToken")
-            
+
             if (response.isSuccessful) {
                 val productsResponse = response.body()
-                
+
                 when {
                     productsResponse?.data != null -> {
                         val products = productsResponse.data.toDomain()
+                        cachedProducts = products
                         Result.Success(products)
                     }
-                    productsResponse?.error != null -> {
-                        val errorMessage = productsResponse.error.userMessage.spanish
-                        Result.Error(Exception(errorMessage))
-                    }
-                    else -> {
-                        Result.Error(Exception("No se pudieron actualizar los productos"))
-                    }
+                    productsResponse?.error != null ->
+                        Result.Error(Exception(productsResponse.error.userMessage.spanish))
+                    else -> Result.Error(Exception("No se pudieron actualizar los productos"))
                 }
             } else {
                 Result.Error(Exception("Error de conexión: ${response.code()}"))
@@ -81,6 +75,9 @@ class ProductsRepositoryImpl @Inject constructor(
             Result.Error(Exception("Error al actualizar productos: ${e.message}"))
         }
     }
+
+    override suspend fun getProductById(id: String): BankAccount? =
+        cachedProducts.find { it.id == id }
 }
 
 
