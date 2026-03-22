@@ -91,7 +91,7 @@ fun AccountDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        if (uiState.account == null) {
+        if (uiState.account == null || uiState.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -123,13 +123,6 @@ fun AccountDetailScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        }
                     }
                 }
 

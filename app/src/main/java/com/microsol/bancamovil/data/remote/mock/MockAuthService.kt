@@ -44,24 +44,13 @@ class MockAuthService @Inject constructor() : AuthService {
             )
             Response.success(response)
 
-        } else if (request.user.usrCode == "usr_error") {
-            val response = LoginResponseDto(
-                error = ErrorDto(
-                    code = 40101,
-                    userMessage = UserMessageDto(
-                        original = "Invalid credentials",
-                        spanish = "Usuario y/o contraseña incorrectos"
-                    )
-                )
-            )
-            Response.success(response)
         } else {
             val response = LoginResponseDto(
                 error = ErrorDto(
                     code = 40100,
                     userMessage = UserMessageDto(
                         original = "Unexpected error occurred",
-                        spanish = "Sucedió un error inesperado"
+                        spanish = "Usuario y/o contraseña incorrectos"
                     )
                 )
             )

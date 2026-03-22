@@ -5,48 +5,46 @@ import com.microsol.bancamovil.data.remote.dto.MovementDto
 import com.microsol.bancamovil.data.remote.dto.MovementsResponseDto
 import kotlinx.coroutines.delay
 import retrofit2.Response
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MockMovementsService @Inject constructor() : MovementsService {
-    
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
-    
+
     override suspend fun getAccountMovements(
         accountId: String,
         authorization: String
     ): Response<MovementsResponseDto> {
         delay(3000)
-        
+
         val movements = when (accountId) {
             "1" -> getSolesAccountMovements(accountId)
             "2" -> getDollarAccountMovements(accountId)
-            "3" -> getEmptyAccountMovements()
+            "3" -> emptyList()
             else -> emptyList()
         }
-        
-        val response = MovementsResponseDto(
-            data = movements
-        )
-        
-        return Response.success(response)
+
+        return Response.success(MovementsResponseDto(data = movements))
     }
-    
+
     private fun getSolesAccountMovements(accountId: String): List<MovementDto> {
-        val calendar = Calendar.getInstance()
-        
+        // Fixed date: 23 Nov 2021 as per spec
+        val nov23 = Calendar.getInstance().apply {
+            set(2021, Calendar.NOVEMBER, 23, 12, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+        val nov23Str = "2021-11-23T12:00:00Z"
+
         return listOf(
             MovementDto(
                 id = "mov_1",
                 accountId = accountId,
                 type = "transfer_in",
-                amount = 46.10,
+                amount = 6.10,
                 currency = "PEN",
                 description = "Transferencia",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -1) }.time),
+                date = nov23Str,
                 balance = 1000.80,
             ),
             MovementDto(
@@ -55,46 +53,14 @@ class MockMovementsService @Inject constructor() : MovementsService {
                 type = "transfer_out",
                 amount = -10.00,
                 currency = "PEN",
-                description = "Plin",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -2) }.time),
-                balance = 954.70,
-            ),
-            MovementDto(
-                id = "mov_3",
-                accountId = accountId,
-                type = "deposit",
-                amount = 500.00,
-                currency = "PEN",
-                description = "Transferencia",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -5) }.time),
-                balance = 964.70,
-            ),
-            MovementDto(
-                id = "mov_4",
-                accountId = accountId,
-                type = "withdrawal",
-                amount = -200.00,
-                currency = "PEN",
-                description = "Plin",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -7) }.time),
-                balance = 464.70,
-            ),
-            MovementDto(
-                id = "mov_5",
-                accountId = accountId,
-                type = "fee",
-                amount = -5.00,
-                currency = "PEN",
-                description = "Plin",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -10) }.time),
-                balance = 664.70,
+                description = "Pin",
+                date = nov23Str,
+                balance = 994.70,
             )
         )
     }
-    
+
     private fun getDollarAccountMovements(accountId: String): List<MovementDto> {
-        val calendar = Calendar.getInstance()
-        
         return listOf(
             MovementDto(
                 id = "mov_usd_1",
@@ -103,8 +69,8 @@ class MockMovementsService @Inject constructor() : MovementsService {
                 amount = 1000.00,
                 currency = "USD",
                 description = "Depósito inicial",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -3) }.time),
-                balance = 1500.20,
+                date = "2021-11-20T12:00:00Z",
+                balance = 1800.20,
             ),
             MovementDto(
                 id = "mov_usd_2",
@@ -113,25 +79,19 @@ class MockMovementsService @Inject constructor() : MovementsService {
                 amount = 25.20,
                 currency = "USD",
                 description = "Intereses ganados",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -15) }.time),
-                balance = 500.20,
+                date = "2021-11-10T12:00:00Z",
+                balance = 800.20,
             ),
             MovementDto(
                 id = "mov_usd_3",
                 accountId = accountId,
                 type = "deposit",
-                amount = 475.00,
+                amount = 775.00,
                 currency = "USD",
                 description = "Transferencia internacional",
-                date = dateFormat.format(calendar.apply { add(Calendar.DAY_OF_MONTH, -30) }.time),
-                balance = 475.00,
+                date = "2021-10-15T12:00:00Z",
+                balance = 775.00,
             )
         )
     }
-    
-    private fun getEmptyAccountMovements(): List<MovementDto> {
-        return emptyList()
-    }
 }
-
-

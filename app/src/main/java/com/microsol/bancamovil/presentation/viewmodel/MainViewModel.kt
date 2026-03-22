@@ -2,19 +2,23 @@ package com.microsol.bancamovil.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.microsol.bancamovil.domain.repository.AuthRepository
 import com.microsol.bancamovil.domain.usecase.LogoutUseCase
-import com.microsol.bancamovil.domain.usecase.SessionState
-import com.microsol.bancamovil.domain.usecase.ValidateSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val SESSION_DURATION_MS = 2 * 60 * 1000L
+private const val CHECK_INTERVAL_MS = 1_000L
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val validateSessionUseCase: ValidateSessionUseCase,
+    private val authRepository: AuthRepository,
     private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
 
@@ -22,34 +26,26 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
-        observeSessionState()
+        startSessionPolling()
     }
 
-    private fun observeSessionState() {
+    private fun startSessionPolling() {
         viewModelScope.launch {
-            validateSessionUseCase().collect { sessionState ->
-                when (sessionState) {
-                    SessionState.Valid -> {
-                        _uiState.value = _uiState.value.copy(
-                            isSessionValid = true,
-                            shouldNavigateToLogin = false,
-                            showSessionExpiredDialog = false
-                        )
-                    }
-                    SessionState.Expired -> {
-                        _uiState.value = _uiState.value.copy(
-                            isSessionValid = false,
-                            shouldNavigateToLogin = false,
-                            showSessionExpiredDialog = true
-                        )
-                    }
-                    SessionState.NotLoggedIn -> {
-                        _uiState.value = _uiState.value.copy(
-                            isSessionValid = false,
-                            shouldNavigateToLogin = true,
-                            showSessionExpiredDialog = false
-                        )
-                    }
+            while (true) {
+                delay(CHECK_INTERVAL_MS)
+
+                val isLoggedIn = authRepository.isLoggedIn().first()
+                if (!isLoggedIn) break
+
+                val timestamp = authRepository.getLoginTimestamp() ?: break
+                val elapsed = System.currentTimeMillis() - timestamp
+
+                if (elapsed > SESSION_DURATION_MS) {
+                    _uiState.value = _uiState.value.copy(
+                        isSessionValid = false,
+                        showSessionExpiredDialog = true
+                    )
+                    break
                 }
             }
         }
@@ -64,6 +60,7 @@ class MainViewModel @Inject constructor(
     fun dismissSessionExpiredDialog() {
         _uiState.value = _uiState.value.copy(showSessionExpiredDialog = false)
         logout()
+        _uiState.value = _uiState.value.copy(shouldNavigateToLogin = true)
     }
 
     fun onNavigatedToLogin() {
@@ -76,5 +73,3 @@ data class MainUiState(
     val shouldNavigateToLogin: Boolean = false,
     val showSessionExpiredDialog: Boolean = false
 )
-
-

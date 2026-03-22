@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,20 +27,38 @@ fun ProductsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val swipeRefreshState = rememberSwipeRefreshState(uiState.isRefreshing)
-    
-    // Mostrar snackbar para errores
-    val snackbarHostState = remember { SnackbarHostState() }
-    
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(
-                message = error,
-                duration = SnackbarDuration.Short
-            )
-            viewModel.clearError()
-        }
+
+    // AlertDialog — error de carga inicial
+    if (uiState.showLoadErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissLoadErrorDialog() },
+            title = { Text("Error") },
+            text = { Text("Ha ocurrido un error, vuelve a intentarlo.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.dismissLoadErrorDialog()
+                    viewModel.loadProducts()
+                }) {
+                    Text("Reintentar")
+                }
+            }
+        )
     }
-    
+
+    // AlertDialog — error de pull-to-refresh
+    if (uiState.showRefreshErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissRefreshErrorDialog() },
+            title = { Text("Error") },
+            text = { Text("Vuelve a intentarlo") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissRefreshErrorDialog() }) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -50,8 +69,7 @@ fun ProductsScreen(
                     )
                 }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { paddingValues ->
         SwipeRefresh(
             state = swipeRefreshState,
@@ -61,76 +79,138 @@ fun ProductsScreen(
                 .padding(paddingValues)
         ) {
             when {
-                uiState.isLoading && uiState.products.isEmpty() -> {
-                    // Estado de carga inicial
+                uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Cargando productos...",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        CircularProgressIndicator()
                     }
                 }
-                
-                uiState.products.isEmpty() && !uiState.isLoading -> {
-                    // Estado vacío
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            MaterialIcon(
-                                iconName = "account_balance_wallet",
-                                size = 64.dp,
-                                tint = MaterialTheme.colorScheme.outline
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No tienes productos disponibles",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Desliza hacia abajo para actualizar",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-                
+
                 else -> {
-                    // Lista de productos
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.products) { account ->
-                            AccountCard(
-                                account = account,
-                                onClick = { onAccountClick(account) }
-                            )
+                        when {
+                            uiState.loadError -> {
+                                item(key = "load_error") {
+                                    LoadErrorItem()
+                                }
+                            }
+
+                            uiState.refreshError -> {
+                                item(key = "refresh_error") {
+                                    RefreshErrorItem()
+                                }
+                            }
+
+                            uiState.products.isEmpty() -> {
+                                item(key = "empty") {
+                                    EmptyProductsItem()
+                                }
+                            }
+
+                            else -> {
+                                items(uiState.products, key = { it.id }) { account ->
+                                    AccountCard(
+                                        account = account,
+                                        onClick = { onAccountClick(account) }
+                                    )
+                                }
+                            }
                         }
-                        
-                        // Espacio adicional al final
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
+
+                        item { Spacer(modifier = Modifier.height(16.dp)) }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LoadErrorItem() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MaterialIcon(
+                iconName = "error",
+                tint = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = "No se pudo obtener las cuentas",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun RefreshErrorItem() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            MaterialIcon(
+                iconName = "sync_problem",
+                size = 40.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "No se han podido cargar las cuentas, inténtelo de nuevo.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyProductsItem() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            MaterialIcon(
+                iconName = "account_balance_wallet",
+                size = 64.dp,
+                tint = MaterialTheme.colorScheme.outline
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No tienes productos disponibles",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Desliza hacia abajo para actualizar",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

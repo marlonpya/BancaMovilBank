@@ -2,6 +2,11 @@ package com.microsol.bancamovil.presentation.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,8 +34,8 @@ fun BankingTextField(
     isError: Boolean = false,
     supportingText: String? = null
 ) {
-
     var textFieldValue by remember { mutableStateOf(TextFieldValue(value)) }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(value) {
         if (value != textFieldValue.text) {
@@ -54,13 +59,32 @@ fun BankingTextField(
         },
         label = { Text(label) },
         modifier = modifier.fillMaxWidth(),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (isPassword && !passwordVisible)
+            PasswordVisualTransformation()
+        else
+            VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         isError = isError,
         supportingText = if (supportingText != null) {
             { Text(supportingText) }
         } else null,
-        singleLine = true
+        singleLine = true,
+        trailingIcon = {
+            if (isPassword) {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible)
+                            Icons.Default.VisibilityOff
+                        else
+                            Icons.Default.Visibility,
+                        contentDescription = if (passwordVisible)
+                            "Ocultar contraseña"
+                        else
+                            "Mostrar contraseña"
+                    )
+                }
+            }
+        }
     )
 }
 

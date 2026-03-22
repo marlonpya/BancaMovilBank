@@ -1,10 +1,17 @@
 package com.microsol.bancamovil.presentation.components
 
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.Error
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.SyncProblem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -21,28 +28,24 @@ fun MaterialIcon(
     size: Dp = 24.dp,
     tint: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    val icon = getIconByName(iconName)
-
     Icon(
-        imageVector = icon,
+        imageVector = iconByName(iconName),
         contentDescription = iconName,
-        modifier = modifier.size(size),
+        modifier = modifier,
         tint = tint
     )
 }
 
-private fun getIconByName(iconName: String): ImageVector {
-    return when (iconName) {
-        //"account_balance" -> Icons.Filled.AccountBalanceWallet
-        //"attach_money" -> Icons.Filled.AccountBalanceWallet
-        //"account_balance_wallet" -> Icons.Filled.AccountBalanceWallet
-        //"credit_card" -> Icons.Filled.AccountBalanceWallet
-        //"savings" -> Icons.Filled.AccountBalanceWallet
-        //"swap_horiz" -> Icons.Filled.Swap
-        "arrow_back" -> Icons.Filled.ArrowBack
-        //"receipt_long" -> Icons.Filled.Receipt
-        "home" -> Icons.Filled.Home
-        else -> Icons.Filled.Info
-    }
+private fun iconByName(name: String): ImageVector = when (name) {
+    "savings"                -> Icons.Outlined.Savings
+    "account_balance_wallet" -> Icons.Outlined.AccountBalanceWallet
+    "swap_horiz"             -> Icons.Outlined.SwapHoriz
+    "receipt_long"           -> Icons.Outlined.ReceiptLong
+    "attach_money"           -> Icons.Outlined.AttachMoney
+    "arrow_back"             -> Icons.Outlined.ArrowBack
+    "home"                   -> Icons.Outlined.Home
+    "share"                  -> Icons.Outlined.Share
+    "error"                  -> Icons.Outlined.Error
+    "sync_problem"           -> Icons.Outlined.SyncProblem
+    else                     -> Icons.Outlined.Info
 }
-

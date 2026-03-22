@@ -111,6 +111,10 @@ class AuthRepositoryImpl @Inject constructor(
         authInterceptor.setAccessToken(null)
     }
 
+    override suspend fun getLoginTimestamp(): Long? {
+        return userPreferences.getSessionTimestamp().first()
+    }
+
     override fun isLoggedIn(): Flow<Boolean> {
         return userPreferences.isLoggedIn()
     }

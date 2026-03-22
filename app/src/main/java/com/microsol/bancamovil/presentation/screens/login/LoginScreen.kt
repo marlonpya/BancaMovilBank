@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,99 +49,112 @@ fun LoginScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-            LoginLogo()
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(
-                text = "Banca Móvil",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Text(
-                text = "Interbank",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            BankingTextField(
-                value = uiState.username,
-                onValueChange = viewModel::updateUsername,
-                label = "Usuario",
-                keyboardType = KeyboardType.Text
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            BankingTextField(
-                value = uiState.password,
-                onValueChange = viewModel::updatePassword,
-                label = "Contraseña",
-                isPassword = true,
-                keyboardType = KeyboardType.Password
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            BankingButton(
-                text = "INGRESAR",
-                onClick = viewModel::login,
-                isLoading = uiState.isLoading
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+                Spacer(modifier = Modifier.height(32.dp))
+
+                LoginLogo()
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Text(
+                    text = "Banca Móvil",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = "Interbank",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                BankingTextField(
+                    value = uiState.username,
+                    onValueChange = viewModel::updateUsername,
+                    label = "Usuario",
+                    keyboardType = KeyboardType.Text
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BankingTextField(
+                    value = uiState.password,
+                    onValueChange = viewModel::updatePassword,
+                    label = "Contraseña",
+                    isPassword = true,
+                    keyboardType = KeyboardType.Password
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                BankingButton(
+                    text = "INGRESAR",
+                    onClick = viewModel::login,
+                    isLoading = uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Text(
-                        text = "Usuarios de prueba:",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Usuarios de prueba:",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = """
-                            • userTest1 / passTest1 (Login exitoso)
-                            • User@test / TestPass_ (Login exitoso)
-                            • user123& / 123456 (Login exitoso)
-                            • usr_error / cualquier_contraseña (Credenciales incorrectas)
-                            • usr_version_error / cualquier_contraseña (Error de versión)
-                            • Cualquier otro usuario (Error genérico)
-                            """.trimIndent(),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Start
-                    )
+                        Text(
+                            text = """
+                                • userTest1 / passTest1 (Login exitoso)
+                                • User@test / TestPass_ (Login exitoso)
+                                • user123& / 123456 (Login exitoso)
+                                • usr_error / cualquier_contraseña (Credenciales incorrectas)
+                                • usr_version_error / cualquier_contraseña (Error de versión)
+                                • Cualquier otro usuario (Error genérico)
+                                """.trimIndent(),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Start
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) { /* consume all touch events */ },
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }

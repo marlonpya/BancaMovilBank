@@ -9,6 +9,7 @@ interface AuthRepository {
     suspend fun saveSession(session: AuthSession)
     suspend fun getSession(): Flow<AuthSession?>
     suspend fun clearSession()
+    suspend fun getLoginTimestamp(): Long?
     fun isLoggedIn(): Flow<Boolean>
     fun isSessionExpired(): Flow<Boolean>
 }

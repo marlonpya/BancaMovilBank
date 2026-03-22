@@ -28,10 +28,11 @@ class ProductsViewModel @Inject constructor(
 
     fun loadProducts() {
         if (_uiState.value.isLoading) return
-        
+
         _uiState.value = _uiState.value.copy(
             isLoading = true,
-            error = null
+            loadError = false,
+            showLoadErrorDialog = false
         )
 
         viewModelScope.launch {
@@ -40,28 +41,29 @@ class ProductsViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         products = result.data,
-                        error = null
+                        loadError = false
                     )
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exception.message ?: "Error al cargar productos"
+                        products = emptyList(),
+                        loadError = true,
+                        showLoadErrorDialog = true
                     )
                 }
-                is Result.Loading -> {
-                    // Ya estamos en loading
-                }
+                is Result.Loading -> Unit
             }
         }
     }
 
     fun refreshProducts() {
         if (_uiState.value.isRefreshing) return
-        
+
         _uiState.value = _uiState.value.copy(
             isRefreshing = true,
-            error = null
+            refreshError = false,
+            showRefreshErrorDialog = false
         )
 
         viewModelScope.launch {
@@ -70,24 +72,28 @@ class ProductsViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isRefreshing = false,
                         products = result.data,
-                        error = null
+                        refreshError = false
                     )
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isRefreshing = false,
-                        error = result.exception.message ?: "Error al actualizar productos"
+                        products = emptyList(),
+                        refreshError = true,
+                        showRefreshErrorDialog = true
                     )
                 }
-                is Result.Loading -> {
-                    // Ya estamos en refreshing
-                }
+                is Result.Loading -> Unit
             }
         }
     }
 
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+    fun dismissLoadErrorDialog() {
+        _uiState.value = _uiState.value.copy(showLoadErrorDialog = false)
+    }
+
+    fun dismissRefreshErrorDialog() {
+        _uiState.value = _uiState.value.copy(showRefreshErrorDialog = false)
     }
 }
 
@@ -95,7 +101,8 @@ data class ProductsUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val products: List<BankAccount> = emptyList(),
-    val error: String? = null
+    val loadError: Boolean = false,
+    val refreshError: Boolean = false,
+    val showLoadErrorDialog: Boolean = false,
+    val showRefreshErrorDialog: Boolean = false
 )
-
-
